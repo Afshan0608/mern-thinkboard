@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors"; // Importing CORS middleware to handle cross-origin requests
+import path from "path"; // Importing path module to work with file and directory paths ...no need to install as npm package its already present in node
 
 
 import notesRoutes from "./routes/notesRoutes.js";
@@ -13,14 +14,20 @@ dotenv.config();
 
 const app= express();
 const PORT=process.env.PORT || 5001; // Use the PORT from environment variables or default to 5001  
+const __dirname=path.resolve(); // Get the current directory name
 
         // connectDB(); // Connect to the MongoDB database using the connectDB function from config/db.js
 
 //middleware we use ..its done for parsing the incoming request body from notescontroller.js
 
+if(process.env.NODE_ENV!=="production")
+{
+    
 app.use(cors(
     {origin:"http://localhost:5173"} // Allow requests from the specified origin (frontend URL)
 )); // Enable CORS for all routes, allowing cross-origin requests
+
+}
 
 app.use(express.json()); // Middleware to parse JSON request bodies added before defining routes
 //this allows us to access req.body in our route handlers right before we send the response
@@ -34,6 +41,22 @@ app.use(express.json()); // Middleware to parse JSON request bodies added before
 app.use(rateLimiter); // Apply the rate limiter middleware to all routes
 
 app.use("/api/notes", notesRoutes); // Mounting the notesRoutes on the /api/notes path
+
+
+
+if(process.env.NODE_ENV==="production"){ 
+ app.use(express.static(path.join(__dirname,"../frontend/dist"))); // Serve static files from the React app's build directory
+//wewill go to frontend and run npm run build
+//serve our optimized react app from backend
+
+    // Check if the environment is production
+    app.get("*",(req,res)=>{  //if we get any route other than /api/notes
+    res.sendFile(path.join(__dirname,"../frontend","dist","index.html"))  // Serve the index.html file for any unknown routes (for client-side routing in React)
+
+
+});
+
+}
 
 // app.get("/api/notes",(req,res)=>{     //creating an api and route
 //     res.send("you got 10 notes");
